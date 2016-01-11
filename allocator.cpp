@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
 
 typedef unsigned int MEMTYPE;
 
@@ -142,34 +144,39 @@ void my_free(void *ptr) {
 
   }
 }
-
 class SmallAllocator {
 private:
         char Memory[1048576];
 public:
-        void *Alloc(unsigned int Size) {};
-        void *ReAlloc(void *Pointer, unsigned int Size) {};
-        void Free(void *Pointer) {};
-};
-
-class SmallAllocator {
-public:
         void *Alloc(unsigned int Size) {
-                return malloc(Size);
+                return my_alloc(Size);
         };
         void *ReAlloc(void *Pointer, unsigned int Size) {
-                return realloc(Pointer, Size);
+                //return realloc(Pointer, Size);
+                my_free(Pointer);
+                return my_alloc(Size);
         };
         void Free(void *Pointer) {
-                return free(Pointer);
+                my_free((void *)Pointer);
         };
 };
-
+//class SmallAllocator {
+//private:
+//        char Memory[1048576];
+//public:
+//        void *Alloc(unsigned int Size) {};
+//        void *ReAlloc(void *Pointer, unsigned int Size) {};
+//        void Free(void *Pointer) {};
+//};
+int main(int argc, char **argv){
 
 SmallAllocator A1;
+std::cout << "first stetps" << std::endl;
 int * A1_P1 = (int *) A1.Alloc(sizeof(int));
-A1_P1 = (int *) A1.ReAlloc(A1_P1, 2 * sizeof(int));
+std::cout << "first allocation" << std::endl;
+//A1_P1 = (int *) A1.ReAlloc(A1_P1, 2 * sizeof(int));
 A1.Free(A1_P1);
+std::cout << "first free" << std::endl;
 SmallAllocator A2;
 int * A2_P1 = (int *) A2.Alloc(10 * sizeof(int));
 for(unsigned int i = 0; i < 10; i++) A2_P1[i] = i;
@@ -187,3 +194,6 @@ for(unsigned int i = 0; i < 5; i++) if(A2_P1[i] != i) std::cout << "ERROR 6" << 
 for(unsigned int i = 0; i < 10; i++) if(A2_P2[i] != -1) std::cout << "ERROR 7" << std::endl;
 A2.Free(A2_P1);
 A2.Free(A2_P2);
+return 0;
+
+}
