@@ -168,8 +168,8 @@ public:
 //        void *ReAlloc(void *Pointer, unsigned int Size) {};
 //        void Free(void *Pointer) {};
 //};
-int main(int argc, char **argv){
-
+int main(int argc, char **argv)
+{
 SmallAllocator A1;
 std::cout << "first stetps" << std::endl;
 int * A1_P1 = (int *) A1.Alloc(sizeof(int));
@@ -195,5 +195,4 @@ for(unsigned int i = 0; i < 10; i++) if(A2_P2[i] != -1) std::cout << "ERROR 7" <
 A2.Free(A2_P1);
 A2.Free(A2_P2);
 return 0;
-
 }
