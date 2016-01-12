@@ -141,7 +141,6 @@ void my_free(void *ptr) {
       mem[linkToNext(prev)] = toFree;
       mem[linkToNext(toFree)] = cur;
     }
-
   }
 }
 class SmallAllocator {
