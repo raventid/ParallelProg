@@ -1,181 +1,114 @@
 #include <stdio.h>
 #include <iostream>
+#include <map>
+#include <iterator>
 #include <stdlib.h>
+#include <string.h>
 
-typedef unsigned int MEMTYPE;
-
-MEMTYPE *mem;
-MEMTYPE memSize;
-MEMTYPE avail;  //1st index of the 1st free range
-
-//return size of block
-MEMTYPE blockSize(MEMTYPE x) {
-  return mem[x];
-}
-
-//return next free block
-MEMTYPE next(MEMTYPE x) {
-  return mem[x + mem[x]];
-}
-
-//return index of pointer to next free block
-MEMTYPE linkToNext(MEMTYPE x) {
-  return x + mem[x];
-}
-
-//initialize memory
-void my_init(void *ptr, unsigned size) {
-
-  mem = (MEMTYPE *) ptr;
-  memSize = size / sizeof(MEMTYPE);
-  mem[0] = memSize - 1;
-  mem[memSize - 1] = memSize;
-  avail = 0;
-}
-
-//allocate memory
-void *my_alloc(unsigned size) {
-
-  if (size == 0) {  //return NULL pointer after attempt to allocate 0-length memory
-    return NULL;
-  }
-
-  MEMTYPE num = size / sizeof(MEMTYPE);
-  if (size % sizeof(MEMTYPE) > 0) num++;
-  MEMTYPE cur, prev;  //pointer to (actually index of) current block, previous block
-  MEMTYPE isFirstFreeBeingAllocated = 1;  //whether the first free block is being allocated
-
-  prev = cur = avail;
-
-  //testing, whether we have enough free space for allocation
-  test:
-
-  if (avail == memSize) {  //if we are on the end of the memory
-    return NULL;
-  }
-
-  if (blockSize(cur) < num) {  //if the size of free block is lower than requested
-    isFirstFreeBeingAllocated = 0;
-    prev = cur;
-
-    if (next(cur) == memSize) {  //if not enough memory
-      return NULL;
-    }
-    else
-      cur = next(cur);
-    goto test;
-  }
-
-  if (blockSize(cur) == num) {  //if the size of free block is equal to requested
-
-    if (isFirstFreeBeingAllocated)
-      avail = next(cur);
-    else
-      mem[linkToNext(prev)] = next(cur);
-  }
-
-  else {  //if the size of free block is greater than requested
-
-    if (isFirstFreeBeingAllocated) {
-      if ((blockSize(cur) - num) == 1)  //if there is only 1 free item left from this (previously) free block
-        avail = next(cur);
-      else
-        avail = cur + num + 1;
-    }
-    else {
-      if ((blockSize(cur) - num) == 1)  //if there is only 1 free item left from this (previously) free block
-        mem[linkToNext(prev)] = next(cur);
-      else
-        mem[linkToNext(prev)] = cur + num + 1;
-    }
-
-    if ((blockSize(cur) - num) == 1)  //if there is only 1 free item left from this (previously) free block
-      mem[cur] = num + 1;
-    else {
-      mem[cur + num + 1] = blockSize(cur) - num - 1;
-      mem[cur] = num;
-    }
-  }
-
-  return (void *) &(mem[cur+1]);
-}
-
-//free memory
-void my_free(void *ptr) {
-
-  MEMTYPE toFree;  //pointer to block (to free)
-  MEMTYPE cur, prev;
-
-  toFree = ((MEMTYPE *)ptr - (mem + 1));
-
-
-  if (toFree < avail) {  //if block, that is being freed is before the first free block
-
-    if (((linkToNext(toFree) + 1) == avail) && avail < memSize)  //if next free block is immediately after block that is being freed
-      mem[toFree] += (mem[avail] + 1);  //defragmentation of free space
-    else
-      mem[linkToNext(toFree)] = avail;
-
-    avail = toFree;
-  }
-
-  else {  //if block, that is being freed isn't before the first free block
-
-    prev = cur = avail;
-
-    while (cur < toFree) {
-      prev = cur;
-      cur = next(cur);
-    }
-
-    if ((linkToNext(prev) + 1) == toFree) { //if previous free block is immediately before block that is being freed
-
-      mem[prev] += (mem[toFree] + 1);  //defragmentation of free space
-
-      if (((linkToNext(toFree) + 1) == cur) && cur < memSize)  //if next free block is immediately after block that is being freed
-        mem[prev] += (mem[cur] + 1);  //defragmentation of free space
-      else
-        mem[linkToNext(toFree)] = cur;
-    }
-    else {
-      mem[linkToNext(prev)] = toFree;
-      mem[linkToNext(toFree)] = cur;
-    }
-  }
-}
 class SmallAllocator {
 private:
         char Memory[1048576];
+	std::map <int, int> memory_manager;
+
+	void *create_memory_block(unsigned int Size) {
+	  int position = get_available_gap(Size);
+	  memory_manager[position] = position + Size - 1;
+	  for( std::map<int, int>::iterator ii=memory_manager.begin(); ii!=memory_manager.end(); ++ii)
+          {
+		  std::cout << (*ii).first << ": " << (*ii).second << std::endl;
+          } 
+	  return (void *)&Memory[position];
+	}
+
+	void free_memory_block(void *Pointer) {
+		std::cout << (char *)Pointer - Memory << std::endl;
+          memory_manager.erase( (char *)Pointer - Memory );	
+	}
+
+	int get_available_gap(unsigned int Size) {
+	  if(0 == memory_manager.size()){
+	         return 0;	
+	  }
+	  if(1 == memory_manager.size()){
+		 return memory_manager.begin()->second+1; 
+	  }
+          std::map<int, int>::iterator prev = memory_manager.begin(); 
+  	  for( std::map<int, int>::iterator ii=memory_manager.begin(); ii!=memory_manager.end(); ++ii)
+            { 
+		    std::cout << (*ii).first << std::endl;
+		    std::cout << (*prev).second << std::endl;
+
+		  if(memory_manager.begin() != ii) {
+		    if ( (*ii).first - (*prev).second >= Size ) {
+		     return (*prev).second + 1;  
+		    }
+		    prev = ii;
+		  }
+            }
+	  std::cout << "Yes, I will return the last one which is " << memory_manager.rbegin()->second+1  << std::endl;
+	  return memory_manager.rbegin()->second+1;
+	}
+
+        int reallocate(void *Pointer, unsigned int Size) {
+		    int position = (char *)Pointer - Memory;
+		    std::map<int, int>::iterator next = memory_manager.upper_bound(position);  
+                    if(memory_manager.end() != next) {
+		      if ( (*next).first - position >= Size ) {
+		       memory_manager[position] = memory_manager[position] + Size - 1;
+ 		       return position;  
+		      }
+		      else {
+		        return -1;
+		      }
+		    }
+		    else{
+	             memory_manager[position] = memory_manager[position] + Size - 1;
+		     return position;
+                    }
+	}
+
 public:
         void *Alloc(unsigned int Size) {
-                return my_alloc(Size);
-        };
+                return create_memory_block(Size); 
+         //       return malloc(Size);
+	};
         void *ReAlloc(void *Pointer, unsigned int Size) {
-                //return realloc(Pointer, Size);
-                my_free(Pointer);
-                return my_alloc(Size);
+		int pointer = 0;
+		if (-1 != reallocate(Pointer, Size)){
+                  return Pointer;
+		}
+		else
+		{
+	          void *new_block = create_memory_block(Size);
+                  memmove( new_block, Pointer, Size);
+	          free_memory_block(Pointer);
+		  return new_block; 
+		}
         };
         void Free(void *Pointer) {
-                my_free((void *)Pointer);
+                free_memory_block(Pointer);
         };
 };
-//class SmallAllocator {
-//private:
-//        char Memory[1048576];
-//public:
-//        void *Alloc(unsigned int Size) {};
-//        void *ReAlloc(void *Pointer, unsigned int Size) {};
-//        void Free(void *Pointer) {};
-//};
+
 int main(int argc, char **argv)
 {
 SmallAllocator A1;
 std::cout << "first stetps" << std::endl;
 int * A1_P1 = (int *) A1.Alloc(sizeof(int));
-std::cout << "first allocation" << std::endl;
-//A1_P1 = (int *) A1.ReAlloc(A1_P1, 2 * sizeof(int));
+int * b = (int *) A1.Alloc(5*sizeof(int));
+std::cout << "------------" << std::endl;
+int * c = (int *) A1.Alloc(5*sizeof(int));
+std::cout << "------------" << std::endl;
+int * m = (int *) A1.Alloc(5*sizeof(int));
+std::cout << "------------" << std::endl;
+
+A1_P1 = (int *) A1.ReAlloc(A1_P1, 2 * sizeof(int));
+m = (int *) A1.ReAlloc(m, 6 * sizeof(int));
 A1.Free(A1_P1);
-std::cout << "first free" << std::endl;
+A1.Free(c);
+
+int * x = (int *) A1.Alloc(5*sizeof(int));
+
 SmallAllocator A2;
 int * A2_P1 = (int *) A2.Alloc(10 * sizeof(int));
 for(unsigned int i = 0; i < 10; i++) A2_P1[i] = i;
