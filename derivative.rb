@@ -15,8 +15,6 @@ def derivative(f = lambda {|value| value}, x)   # default f(x) = x
 end
 
 def visual(str)
-  
-
 end
 # General workflow
 my_function = lambda {|x| 4.0 * x**2 + 5.0 * x}
