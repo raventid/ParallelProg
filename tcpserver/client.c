@@ -21,7 +21,7 @@ int main(int argc, char **argv){
  shutdown(Socket, SHUT_RDWR);
  close(Socket);
 
- printf("%c\n", Buffer);
+ printf("%s\n", Buffer);
 
  return 0;
 }
