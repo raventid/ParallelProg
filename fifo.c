@@ -14,16 +14,15 @@ int main(){
  int len=0;
  while(1){
    len = read(pipe_in, &buf, sizeof(buf));
-   if (len == 0) {continue;}
-   else{
-
-   int pipe_out = open("out.fifo", O_WRONLY);
-   write(pipe_out, &buf, len);
-   close(pipe_out);
-   exit(0);
-   
+   if (len == 0) 
+   {
+       continue;
+   } else {
+       int pipe_out = open("out.fifo", O_WRONLY);
+       write(pipe_out, &buf, len);
+       close(pipe_out);
+       exit(0);
    }
-
  }
 
  close(pipe_in);
